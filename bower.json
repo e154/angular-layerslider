@@ -1,0 +1,26 @@
+{
+  "name": "angular-layerslider",
+  "version": "0.1.0",
+  "authors": [
+    "(delta54 <support@e154.ru>)"
+  ],
+  "description": "angular layer slider directive",
+  "main": "angular-layerslider.js",
+  "keywords": [
+    "angular",
+    "directive",
+    "layerslider"
+  ],
+  "license": "MIT",
+  "homepage": "e154.ru/blog",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+   "dependencies": {
+    "e154/layerslider": "5.3.2"
+  }
+}

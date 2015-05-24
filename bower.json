@@ -21,7 +21,7 @@
     "tests"
   ],
    "dependencies": {
-    "e154/layerslider": "5.3.2",
+    "layerslider": "e154/layerslider#~5.3.2",
      "webfontloader": "~1.5.18"
   }
 }

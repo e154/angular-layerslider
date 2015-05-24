@@ -315,6 +315,8 @@
                         options.cbPrev = eval("("+data.properties.cbPrev+")");
                         options.cbNext = eval("("+data.properties.cbNext+")");
 
+                        options.skinsPath = (options.skinsPath == "")? '/layerslider/skins/': options.skinsPath;
+
                         $(element).find(".ls-container")
                             .layerSlider(
                             $.extend(options, $scope.options)

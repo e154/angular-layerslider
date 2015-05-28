@@ -128,7 +128,7 @@
                         });
 
                         // Add backgrounds
-                        var backgroundColor = data.properties.backgroundcolor;
+                        var backgroundColor = data.properties.backgroundColor;
                         var backgroundImage = data.properties.backgroundimage;
                         if (backgroundColor != '') {
                             layerslider.css({backgroundColor: backgroundColor});
@@ -304,6 +304,12 @@
                         // apply style
                         if (typeof data.style != 'undefined') {
                             $('<style type="text/css"></style>').appendTo('head').html(data.style);
+                        }
+
+                        // Set logo
+                        var yourLogo = data.properties.yourLogo;
+                        if (yourLogo && yourLogo !== '') {
+                            data.properties.yourLogo = $scope.imageDir + $scope.sliderId + '/' + yourLogo
                         }
 
                         // Get slider settings

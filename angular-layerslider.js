@@ -3,19 +3,24 @@
  */
 
 /**
- * <layer-slider sliderId="71" image-dir="/images/layerslider/"></layer-slider>
- * <layer-slider sliderId="71" image-dir="/images/layerslider/" options="{
-                                responsive: false,
-                                responsiveUnder: 1280,
-                                layersContainer: 1280,
-                                skin: 'noskin',
-                                hoverPrevNext: false,
-                                pauseOnHover: true,
-                                showCircleTimer: true,
-                                skinsPath: '../layerslider/skins/',
-                                autoPlayVideos: false,
-                                hoverBottomNav: true
-                            }"
+ * <layer-slider
+ * render-url="/api/layerslider/render/"
+ * api-url="/api/layerslider/"
+ * slider-id="71"
+ * image-dir="/images/layerslider/"
+ * ng-model="model"
+ * options="{
+                responsive: false,
+                responsiveUnder: 1280,
+                layersContainer: 1280,
+                skin: 'noskin',
+                hoverPrevNext: false,
+                pauseOnHover: true,
+                showCircleTimer: true,
+                skinsPath: '../layerslider/skins/',
+                autoPlayVideos: false,
+                hoverBottomNav: true
+            }"
  ></layer-slider>
  */
 (function(){
@@ -44,7 +49,9 @@
                     sliderId: "=",
                     options: "=",
                     imageDir: "@",
-                    render: "@"
+                    renderUrl: "@",
+                    apiUrl: "@",
+                    model: "="
                 },
                 link: function ($scope, element, attrs) {
 
@@ -90,7 +97,7 @@
 
                     var serverRender = function(){
 
-                        $http.get("/api/layerslider/render/" + $scope.sliderId)
+                        $http.get($scope.renderUrl + $scope.sliderId)
                             .success(function(data, status, headers, config) {
 
                                 $(element).html(data.slider);
@@ -105,155 +112,161 @@
                             });
                     };
 
-                    var clientRender = function(){
+                    var render = function(data){
 
-                        var render = function(data){
+                        // Get layerslider contaier
+                        var wrapper = $('<div id="slider-wrapper">').appendTo(element);
+                        var layerslider = $('<div id="layerslider" class="ls-wp-container ls-container">').appendTo(wrapper);
+                        var dir = $scope.imageDir + $scope.sliderId;
 
-                            // Get layerslider contaier
-                            var wrapper = $('<div id="slider-wrapper">').appendTo(element);
-                            var layerslider = $('<div id="layerslider" class="ls-wp-container ls-container">').appendTo(wrapper);
-                            var dir = $scope.imageDir + $scope.sliderId;
+                        // Apply global settings
+                        layerslider.css({
+                            width: data.properties.width,
+                            height: data.properties.height,
+                            'max-width': data.properties.maxwidth,
+                            visibility: 'visible'
+                        });
 
-                            // Apply global settings
-                            layerslider.css({
-                                width: data.properties.width,
-                                height: data.properties.height,
-                                'max-width': data.properties.maxwidth,
-                                visibility: 'visible'
+                        // Add backgrounds
+                        var backgroundColor = data.properties.backgroundcolor;
+                        var backgroundImage = data.properties.backgroundimage;
+                        if (backgroundColor != '') {
+                            layerslider.css({backgroundColor: backgroundColor});
+                        }
+
+                        if (backgroundImage != '') {
+                            layerslider.css({backgroundImage: 'url(' + dir + "/" + backgroundImage + ')'});
+                        }
+
+                        // Iterate over the slides
+                        angular.forEach(data.layers, function(slide, slide_key){
+
+                            // not show hidden layers
+                            if (slide.properties.hidden) {
+                                return true;
+                            }
+
+                            // Slide properties
+                            var layerprops = '';
+                            angular.forEach(slide.properties, function(val, key){
+                                layerprops += '' + key + ':' + val + ';';
                             });
 
-                            // Add backgrounds
-                            var backgroundColor = data.properties.backgroundcolor;
-                            var backgroundImage = data.properties.backgroundimage;
-                            if (backgroundColor != '') {
-                                layerslider.css({backgroundColor: backgroundColor});
+                            // Build the Slide
+                            var layer = $('<div class="ls-layer">').appendTo(layerslider);
+                            layer.attr('data-ls', layerprops);
+
+                            // Get background
+                            var background = slide.properties.background;
+                            if (background === '[image-url]') {
+                                background = post['image-url'];
                             }
 
-                            if (backgroundImage != '') {
-                                layerslider.css({backgroundImage: 'url(' + dir + "/" + backgroundImage + ')'});
+                            // Add background
+                            if (background != '') {
+                                $('<img src="' + dir + "/" + background + '" class="ls-bg">').appendTo(layer);
                             }
 
-                            // Iterate over the slides
-                            angular.forEach(data.layers, function(slide, slide_key){
+                            // Get selected transitions
+                            var tr2d = slide.properties['2d_transitions'];
+                            var tr3d = slide.properties['3d_transitions'];
+                            var tr2dcustom = slide.properties['custom_2d_transitions'];
+                            var tr3dcustom = slide.properties['custom_3d_transitions'];
 
-                                // not show hidden layers
-                                if (slide.properties.hidden) {
-                                    return true;
-                                }
+                            // Apply transitions
+                            if (tr2d == '' && tr3d == '' && tr2dcustom == '' && tr3dcustom == '') {
+                                layer.attr('data-ls', layer.attr('data-ls') + ' transition2d: all; ');
+                                layer.attr('data-ls', layer.attr('data-ls') + ' transition3d: all; ');
+                            } else {
+                                if (tr2d != '') layer.attr('data-ls', layer.attr('data-ls') + ' transition2d: ' + tr2d + '; ');
+                                if (tr3d != '') layer.attr('data-ls', layer.attr('data-ls') + ' transition3d: ' + tr3d + '; ');
+                                if (tr2dcustom != '') layer.attr('data-ls', layer.attr('data-ls') + ' customtransition2d: ' + tr2dcustom + '; ');
+                                if (tr3dcustom != '') layer.attr('data-ls', layer.attr('data-ls') + ' customtransition3d: ' + tr3dcustom + '; ');
+                            }
 
-                                // Slide properties
-                                var layerprops = '';
-                                angular.forEach(slide.properties, function(val, key){
-                                    layerprops += '' + key + ':' + val + ';';
+                            // Iterate over layers
+                            angular.forEach(slide.sublayers, function(sub, sub_key){
+
+                                // Sublayer properties
+                                var sublayerprops = '';
+                                angular.forEach(sub.transition, function(val, key){
+                                    sublayerprops += '' + key + ':' + val + ';';
                                 });
 
-                                // Build the Slide
-                                var layer = $('<div class="ls-layer">').appendTo(layerslider);
-                                layer.attr('data-ls', layerprops);
+                                // Styles
+                                var styles = {};
+                                angular.forEach(sub.styles, function(cssVal, cssProp){
+                                    if (cssVal !== '') {
+                                        if (cssVal.slice(-1) == ';') {
+                                            cssVal = cssVal.substring(0, cssVal.length - 1);
+                                        }
 
-                                // Get background
-                                var background = slide.properties.background;
-                                if (background === '[image-url]') {
-                                    background = post['image-url'];
-                                }
+                                        styles[cssProp] = isNumber(cssVal) ? cssVal + 'px' : cssVal;
+                                    }
+                                });
 
-                                // Add background
-                                if (background != '') {
-                                    $('<img src="' + dir + "/" + background + '" class="ls-bg">').appendTo(layer);
-                                }
+                                // Build the sublayer
+                                var sublayer;
+                                if (sub.media == "img") {
 
-                                // Get selected transitions
-                                var tr2d = slide.properties['2d_transitions'];
-                                var tr3d = slide.properties['3d_transitions'];
-                                var tr2dcustom = slide.properties['custom_2d_transitions'];
-                                var tr3dcustom = slide.properties['custom_3d_transitions'];
+                                    if (sub.image == '') {
+                                        return true;
+                                    }
+                                    if (sub.image == '[image-url]') {
+                                        sub.image = post['image-url'];
+                                    }
 
-                                // Apply transitions
-                                if (tr2d == '' && tr3d == '' && tr2dcustom == '' && tr3dcustom == '') {
-                                    layer.attr('data-ls', layer.attr('data-ls') + ' transition2d: all; ');
-                                    layer.attr('data-ls', layer.attr('data-ls') + ' transition3d: all; ');
+                                    sublayer = $('<img src="' + dir + "/" + sub.image + '" class="ls-s">').appendTo(layer);
+
+                                } else if (sub.media == 'post') {
+
+                                    //...
+                                    //TODO add in future
+
                                 } else {
-                                    if (tr2d != '') layer.attr('data-ls', layer.attr('data-ls') + ' transition2d: ' + tr2d + '; ');
-                                    if (tr3d != '') layer.attr('data-ls', layer.attr('data-ls') + ' transition3d: ' + tr3d + '; ');
-                                    if (tr2dcustom != '') layer.attr('data-ls', layer.attr('data-ls') + ' customtransition2d: ' + tr2dcustom + '; ');
-                                    if (tr3dcustom != '') layer.attr('data-ls', layer.attr('data-ls') + ' customtransition3d: ' + tr3dcustom + '; ');
+                                    sublayer = $('<' + sub.type + '>').appendTo(layer).html(sub.html).addClass('ls-s');
                                 }
 
-                                // Iterate over layers
-                                angular.forEach(slide.sublayers, function(sub, sub_key){
+                                // Apply styles and attributes
+                                sublayer.attr('id', sub_key).attr('style', sub.style).addClass(sub.class)
+                                sublayer.css(styles);
+                                if (!sub.styles.wordwrap) {
+                                    sublayer.css('white-space', 'nowrap');
+                                }
 
-                                    // Sublayer properties
-                                    var sublayerprops = '';
-                                    angular.forEach(sub.transition, function(val, key){
-                                        sublayerprops += '' + key + ':' + val + ';';
-                                    });
+                                // Position the element
+                                if (sub.top.indexOf('%') != -1) {
+                                    sublayer.css({top: sub.top});
+                                } else {
+                                    sublayer.css({top: parseInt(sub.top)});
+                                }
 
-                                    // Styles
-                                    var styles = {};
-                                    angular.forEach(sub.styles, function(cssVal, cssProp){
-                                        if (cssVal !== '') {
-                                            if (cssVal.slice(-1) == ';') {
-                                                cssVal = cssVal.substring(0, cssVal.length - 1);
-                                            }
+                                if (sub.left.indexOf('%') != -1) {
+                                    sublayer.css({left: sub.left});
+                                } else {
+                                    sublayer.css({left: parseInt(sub.left)});
+                                }
 
-                                            styles[cssProp] = isNumber(cssVal) ? cssVal + 'px' : cssVal;
-                                        }
-                                    });
+                                if (sub.url != '' && sub.url.match(/^\#[0-9]/)) {
+                                    sublayer.addClass('ls-linkto-' + sub.url.substr(1));
+                                }
 
-                                    // Build the sublayer
-                                    var sublayer;
-                                    if (sub.media == "img") {
+                                sublayer.attr('data-ls', sublayerprops);
+                            })
+                        });
 
-                                        if (sub.image == '') {
-                                            return true;
-                                        }
-                                        if (sub.image == '[image-url]') {
-                                            sub.image = post['image-url'];
-                                        }
+                        Play(data);
+                    };
 
-                                        sublayer = $('<img src="' + dir + "/" + sub.image + '" class="ls-s">').appendTo(layer);
+                    var clear = function(){
+                        $(element).find("#layerslider")
+                            .layerSlider('stop')
+                            .remove();
+                    };
 
-                                    } else if (sub.media == 'post') {
+                    var clientRender = function(){
 
-                                        //...
-                                        //TODO add in future
-
-                                    } else {
-                                        sublayer = $('<' + sub.type + '>').appendTo(layer).html(sub.html).addClass('ls-s');
-                                    }
-
-                                    // Apply styles and attributes
-                                    sublayer.attr('id', sub_key).attr('style', sub.style).addClass(sub.class)
-                                    sublayer.css(styles);
-                                    if (!sub.styles.wordwrap) {
-                                        sublayer.css('white-space', 'nowrap');
-                                    }
-
-                                    // Position the element
-                                    if (sub.top.indexOf('%') != -1) {
-                                        sublayer.css({top: sub.top});
-                                    } else {
-                                        sublayer.css({top: parseInt(sub.top)});
-                                    }
-
-                                    if (sub.left.indexOf('%') != -1) {
-                                        sublayer.css({left: sub.left});
-                                    } else {
-                                        sublayer.css({left: parseInt(sub.left)});
-                                    }
-
-                                    if (sub.url != '' && sub.url.match(/^\#[0-9]/)) {
-                                        sublayer.addClass('ls-linkto-' + sub.url.substr(1));
-                                    }
-
-                                    sublayer.attr('data-ls', sublayerprops);
-                                })
-                            });
-
-                            Play(data);
-                        };
-
-                        $http.get("/api/layerslider/" + $scope.sliderId)
+                        $http.get($scope.apiUrl + $scope.sliderId)
                             .success(function(data, status, headers, config) {
 
                                 var slider = data.slider.data;
@@ -328,19 +341,29 @@
                             .layerSlider('stop');
                     };
 
-                    // Slider unloaded
+                    // if destroy
                     $scope.$on('$destroy', function() {
                         log("destroy slider");
 
-                        Stop();
+                        clear();
 
-                        $scope.$destroy();
+                        //$scope.$destroy();
                     });
 
-                    if ($scope.render == 'server') {
-                        serverRender();
-                    } else {
+                    if(typeof $scope.sliderId != 'undefined' && typeof $scope.apiUrl != 'undefined'){
                         clientRender();
+
+                    } else if (typeof $scope.renderUrl != 'undefined' && typeof $scope.sliderId != 'undefined' ){
+                        serverRender();
+
+                    } else {
+
+                        $scope.$watch('model', function (data) {
+                            if(typeof data.properties == 'undefined') return;
+
+                            clear();
+                            render(data);
+                        });
                     }
 
                 }

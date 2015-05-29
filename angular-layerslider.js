@@ -308,7 +308,7 @@
 
                         // Set logo
                         var yourLogo = data.properties.yourLogo;
-                        if (yourLogo && yourLogo !== '') {
+                        if (yourLogo && yourLogo !== '' && yourLogo.indexOf('/') == -1) {
                             data.properties.yourLogo = $scope.imageDir + $scope.sliderId + '/' + yourLogo
                         }
 
